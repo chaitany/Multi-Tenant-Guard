@@ -116,7 +116,7 @@ export async function setupRLSAndTriggers() {
           COALESCE(NEW.id, OLD.id),
           CASE WHEN TG_OP = 'INSERT' THEN NULL ELSE to_jsonb(OLD) END,
           CASE WHEN TG_OP = 'DELETE' THEN NULL ELSE to_jsonb(NEW) END,
-          current_setting('app.current_user', true)
+          current_setting('app.current_username', true)
         );
         RETURN COALESCE(NEW, OLD);
       END;
