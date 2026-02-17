@@ -60,6 +60,16 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  const { setupRLSAndTriggers } = await import("./rls-and-triggers");
+  const { seedDatabase } = await import("./seed");
+
+  try {
+    await setupRLSAndTriggers();
+    await seedDatabase();
+  } catch (err) {
+    console.error("Setup error:", err);
+  }
+
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
