@@ -14,6 +14,17 @@ export async function setupRLSAndTriggers() {
 
     await client.query(`
       DO $$ BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'users' AND column_name = 'reports_to'
+        ) THEN
+          ALTER TABLE users ADD COLUMN reports_to UUID REFERENCES users(id) ON DELETE SET NULL;
+        END IF;
+      END $$;
+    `);
+
+    await client.query(`
+      DO $$ BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'tenant_isolation_select_users') THEN
           CREATE POLICY tenant_isolation_select_users ON users
             FOR SELECT

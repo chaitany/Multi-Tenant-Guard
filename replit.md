@@ -19,7 +19,7 @@ A multi-tenant SaaS platform demonstrating PostgreSQL Row-Level Security (RLS), 
 
 ## Database Schema
 - `tenants` - Organizations with plan and status
-- `users` - Users belonging to tenants with optional role assignment
+- `users` - Users belonging to tenants with optional role assignment and `reports_to` self-reference for hierarchy
 - `roles` - Roles with JSONB permissions column scoped to tenants
 - `audit_logs` - Automatic change tracking with old_data/new_data JSONB
 
@@ -60,6 +60,11 @@ A multi-tenant SaaS platform demonstrating PostgreSQL Row-Level Security (RLS), 
 - FastAPI middleware uses `@app.middleware("http")` pattern (not BaseHTTPMiddleware) to avoid async generator crashes
 - RLS enforced via `SET LOCAL ROLE app_user` and `SET LOCAL app.current_tenant_id`
 
+### Scripts
+- `scripts/load_test.py` - High-load simulation: batch inserts 1,000 users across 10 tenants, recursive CTE hierarchy query, EXPLAIN ANALYZE with performance logging
+- `scripts/performance_report.log` - Generated output from load test with query plans and timing
+
 ## Running
 - `npm run dev` starts Express + Vite dev server on port 5000
 - `python -m uvicorn fastapi_app.main:app --host 0.0.0.0 --port 8000` starts FastAPI on port 8000
+- `python scripts/load_test.py` runs the performance/load test (requires Node.js app to have run first for schema setup)

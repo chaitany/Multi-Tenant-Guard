@@ -44,11 +44,13 @@ class User(Base):
     username = Column(Text, nullable=False, unique=True)
     email = Column(Text, nullable=False)
     password = Column(Text, nullable=False)
+    reports_to = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     status = Column(Text, nullable=False, server_default=text("'active'"))
     created_at = Column(DateTime, nullable=False, server_default=text("now()"))
 
     tenant = relationship("Tenant", back_populates="users")
     role = relationship("Role", back_populates="users")
+    manager = relationship("User", remote_side="User.id", foreign_keys=[reports_to])
 
 
 class AuditLog(Base):
