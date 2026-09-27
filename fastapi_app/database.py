@@ -12,7 +12,10 @@ elif DATABASE_URL.startswith("postgresql://"):
 
 parsed = urlparse(DATABASE_URL)
 query_params = parse_qs(parsed.query)
-query_params.pop("sslmode", None)
+# asyncpg doesn't accept libpq-only params in the URL; translate sslmode into connect_args.
+_sslmode = (query_params.pop("sslmode", [""])[0] or os.environ.get("PGSSLMODE", "")).lower()
+query_params.pop("channel_binding", None)
+_ssl = "require" if _sslmode in ("require", "verify-ca", "verify-full") else False
 clean_query = urlencode(query_params, doseq=True)
 DATABASE_URL = urlunparse(parsed._replace(query=clean_query))
 
@@ -21,7 +24,7 @@ engine = create_async_engine(
     echo=False,
     pool_size=10,
     max_overflow=20,
-    connect_args={"ssl": False},
+    connect_args={"ssl": _ssl},
 )
 
 AsyncSessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)

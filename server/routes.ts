@@ -110,7 +110,7 @@ export async function registerRoutes(
         message: `RLS filtered results: only rows matching tenant_id=${tenantId} are returned`,
       });
     } catch (err: any) {
-      res.status(500).json({ message: err.message });
+      res.status(err.status || 500).json({ message: err.message });
     }
   });
 

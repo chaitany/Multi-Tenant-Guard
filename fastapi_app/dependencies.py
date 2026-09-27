@@ -32,9 +32,9 @@ async def get_tenant_session(
         async with session.begin():
             if ctx.tenant_id:
                 await session.execute(text("SET LOCAL ROLE app_user"))
-                await session.execute(text(f"SET LOCAL app.current_tenant_id = '{ctx.tenant_id}'"))
+                await session.execute(text("SELECT set_config('app.current_tenant_id', :v, true)"), {"v": str(ctx.tenant_id)})
                 if ctx.username:
-                    await session.execute(text(f"SET LOCAL app.current_username = '{ctx.username}'"))
+                    await session.execute(text("SELECT set_config('app.current_username', :v, true)"), {"v": ctx.username})
             yield session
 
 

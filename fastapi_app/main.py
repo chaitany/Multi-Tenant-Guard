@@ -240,7 +240,7 @@ async def rls_demo(tenant_id: UUID):
     async with AsyncSessionLocal() as session:
         async with session.begin():
             await session.execute(text("SET LOCAL ROLE app_user"))
-            await session.execute(text(f"SET LOCAL app.current_tenant_id = '{tenant_id}'"))
+            await session.execute(text("SELECT set_config('app.current_tenant_id', :v, true)"), {"v": str(tenant_id)})
             users_result = await session.execute(select(User).order_by(User.username))
             roles_result = await session.execute(select(Role).order_by(Role.name))
             users = users_result.scalars().all()

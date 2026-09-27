@@ -1,7 +1,38 @@
 import { pool } from "./db";
 import { log } from "./index";
 
+async function ensureAppUserRole() {
+  // RLS is enforced by switching to a non-owner role per transaction
+  // (SET LOCAL ROLE app_user). The role must exist and the connecting user
+  // must be a member of it. Idempotent, so it is safe on every boot.
+  const client = await pool.connect();
+  try {
+    await client.query(`
+      DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app_user') THEN
+          CREATE ROLE app_user NOLOGIN;
+        END IF;
+      END $$;
+    `);
+    await client.query(`GRANT app_user TO CURRENT_USER`);
+    await client.query(`GRANT USAGE ON SCHEMA public TO app_user`);
+    await client.query(`GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO app_user`);
+    await client.query(`GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO app_user`);
+    log("app_user role ready", "rls");
+  } catch (err) {
+    log(
+      `Could not create/grant app_user (database user needs CREATEROLE): ${err}`,
+      "rls",
+    );
+  } finally {
+    client.release();
+  }
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function setupRLSAndTriggers() {
+  await ensureAppUserRole();
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
@@ -158,11 +189,14 @@ export async function setupRLSAndTriggers() {
 }
 
 export async function queryWithTenantContext(tenantId: string, query: string, params?: any[]) {
+  if (!UUID_RE.test(tenantId)) {
+    throw Object.assign(new Error("tenantId must be a UUID"), { status: 400 });
+  }
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
     await client.query(`SET LOCAL ROLE app_user`);
-    await client.query(`SET LOCAL app.current_tenant_id = '${tenantId}'`);
+    await client.query(`SELECT set_config('app.current_tenant_id', $1, true)`, [tenantId]);
     const result = await client.query(query, params);
     await client.query("COMMIT");
     return result;
