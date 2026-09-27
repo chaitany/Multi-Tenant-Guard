@@ -68,3 +68,4 @@ A multi-tenant SaaS platform demonstrating PostgreSQL Row-Level Security (RLS), 
 - `npm run dev` starts Express + Vite dev server on port 5000
 - `python -m uvicorn fastapi_app.main:app --host 0.0.0.0 --port 8000` starts FastAPI on port 8000
 - `python scripts/load_test.py` runs the performance/load test (requires Node.js app to have run first for schema setup)
+- First load may take ~1 minute.
